@@ -75,6 +75,12 @@
             },
             score: {
                 winScore: 5
+            },
+            block: {  // Add this new section
+                width: 30,
+                height: 15,
+                points: 10,
+                color: '#FF0000'
             }
         };
 
@@ -103,6 +109,20 @@
             }
         }
 
+        class Block extends GameObject {
+            constructor(x, y, width, height) {
+                super(x, y, width, height);
+                this.active = true;
+            }
+        
+            draw(ctx) {
+                if (this.active) {
+                    ctx.fillStyle = CONFIG.block.color;
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+            }
+        }
+        
         class Paddle extends GameObject {
             constructor(x, y, width, height) {
                 super(x, y, width, height);
@@ -166,6 +186,19 @@
                 }
                 return false;
             }
+            checkBlockCollision(block) {
+                if (!block.active) return false;
+                
+                if (this.x < block.x + block.width &&
+                    this.x + this.width > block.x &&
+                    this.y < block.y + block.height &&
+                    this.y + this.height > block.y) {
+                    
+                    block.active = false;
+                    return true;
+                }
+                return false;
+            }
         }
 
         // Initialize game objects
@@ -192,6 +225,13 @@
             CONFIG.canvas.width / 2,
             CONFIG.canvas.height / 2,
             CONFIG.ball.size
+        );
+
+        const block = new Block(
+            Math.random() * (CONFIG.canvas.width - 200) + 100, // Random X between 100 and width-100
+            Math.random() * (CONFIG.canvas.height - 50) + 25,  // Random Y between 25 and height-25
+            CONFIG.block.width,
+            CONFIG.block.height
         );
 
         // Input handling
@@ -242,6 +282,13 @@
             ball.checkPaddleCollision(playerPaddle);
             ball.checkPaddleCollision(aiPaddle);
 
+            // Check for block collision and winning
+            if (ball.checkBlockCollision(block)) {
+                gameState.score.player += CONFIG.block.points;
+                gameState.over = true;
+                document.getElementById('gameOver').style.display = 'block';
+            }
+
             // Check for scoring
             if (ball.x <= 0) {
                 gameState.score.ai++;
@@ -280,6 +327,7 @@
             playerPaddle.draw(ctx);
             aiPaddle.draw(ctx);
             ball.draw(ctx);
+            block.draw(ctx)
         }
 
         function gameLoop() {
@@ -296,6 +344,11 @@
             ball.reset();
             playerPaddle.y = (CONFIG.canvas.height - CONFIG.paddle.height) / 2;
             aiPaddle.y = (CONFIG.canvas.height - CONFIG.paddle.height) / 2;
+            block.active = true;
+            // Give block new random position
+            block.x = Math.random() * (CONFIG.canvas.width - 200) + 100;
+            block.y = Math.random() * (CONFIG.canvas.height - 50) + 25;
+
         }
 
         // Start the game
