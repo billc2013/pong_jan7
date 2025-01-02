@@ -1,103 +1,60 @@
-# Classic Pong Game with Bonus Block
+# Canvas Pong Game
 
-A unique twist on the classic Pong game using vanilla HTML, CSS, and JavaScript. The game features a player-controlled paddle on the left side and an AI-controlled paddle on the right side, plus a special bonus block that can instantly win the game!
+A classic Pong implementation using HTML5 Canvas with player vs AI gameplay.
 
 ## Features
-
-- Classic Pong gameplay mechanics
-- Smooth paddle and ball movement
-- Simple AI opponent
+- Real-time paddle movement
+- AI opponent with predictive movement
 - Score tracking
-- Realistic ball physics with angle-based paddle deflection
-- Speed increase on each paddle hit
-- Special bonus block that awards instant victory
-- Game over state with restart functionality
-- Responsive canvas sizing
+- Progressive difficulty (ball speeds up during play)
+- Collision detection and physics
+- Visual feedback (colored paddle borders)
 
-## How to Play
+## Technical Implementation
 
-1. Use the **Up** and **Down** arrow keys to move your paddle (left side)
-2. The AI controls the right paddle
-3. Regular scoring: First player to score 5 points wins
-4. Bonus scoring: Hit the red block to instantly win with +10 points!
-5. Press **Space** to restart after a game ends
+### Core Components
+1. **Game State Management**
+   - Ball physics and position
+   - Paddle positions and scores
+   - Game loop control
 
-## Game Configuration
+2. **Input System**
+   - Arrow key handling for player movement
+   - AI movement based on ball trajectory
 
-The game's behavior can be easily modified by adjusting the `CONFIG` object in the JavaScript code:
+3. **Rendering System**
+   - Canvas-based rendering
+   - 60 FPS game loop using requestAnimationFrame
+   - Visual elements: paddles, ball, score, center line
 
-```javascript
-const CONFIG = {
-    canvas: {
-        width: 800,
-        height: 400
-    },
-    paddle: {
-        width: 10,
-        height: 60,
-        speed: 5,
-        margin: 50
-    },
-    ball: {
-        size: 8,
-        speed: 5,
-        speedIncrease: 0.2
-    },
-    score: {
-        winScore: 5
-    },
-    block: {
-        width: 30,
-        height: 15,
-        points: 10,
-        color: '#FF0000'
-    }
-};
-```
+### Game Mechanics
+- Ball speed increases after each paddle hit
+- AI difficulty controlled by paddle speed and reaction time
+- Score increases when ball passes opponent's paddle
+- Paddle collisions affect ball trajectory
 
-## Installation
+## Controls
+- ↑ Up Arrow: Move paddle up
+- ↓ Down Arrow: Move paddle down
 
-1. Clone this repository:
-   ```bash
-   git clone [your-repository-url]
-   ```
-
-2. Open `index.html` in your web browser
-
-No additional dependencies or build steps are required!
+## Setup & Running
+1. Include the HTML file in your project
+2. Game starts automatically on page load
+3. No external dependencies required
 
 ## Code Structure
+- HTML: Canvas element and score display
+- CSS: Basic styling and layout
+- JavaScript: Game logic and rendering
 
-The game is built using an object-oriented approach with the following main classes:
+## Performance Considerations
+- Optimized collision detection
+- Efficient canvas rendering
+- Smooth animation handling
 
-- `GameObject`: Base class for game objects with position and dimension properties
-- `Paddle`: Extends GameObject to handle paddle movement and constraints
-- `Ball`: Extends GameObject to handle ball movement, collisions, and scoring
-- `Block`: Extends GameObject to handle the bonus block mechanics
-
-## Special Feature: Bonus Block
-
-The red bonus block appears in a random position on the field. If you manage to hit it:
-- You instantly win the game
-- You get 10 bonus points
-- The game ends immediately
-
-When you restart:
-- The block reappears in a new random position
-- All scores reset to 0
-- Regular gameplay resumes
-
-## Contributing
-
-Feel free to fork this repository and make improvements. Some possible enhancements could include:
-
-- Adding sound effects
-- Implementing a two-player mode
-- Adding multiple bonus blocks
-- Creating different AI difficulty levels
-- Adding touch/mobile support
-- Creating power-ups that modify gameplay
-
-## License
-
-This project is open source and available under the MIT License.
+## Future Enhancements
+- Multiple difficulty levels
+- Two-player mode
+- Power-ups and special effects
+- Sound effects and music
+- Mobile touch controls
