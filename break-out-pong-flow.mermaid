@@ -1,0 +1,22 @@
+flowchart TB
+    subgraph GameLoop
+        Init[Initialize Game] --> Update
+        Update --> CollisionCheck[Check Collisions]
+        CollisionCheck --> Score[Update Score]
+        Score --> Draw[Draw Frame]
+        Draw --> RAF[Request Animation Frame]
+        RAF --> Update
+    end
+
+    subgraph ModeControl
+        KeyB[B Key Press] --> ToggleBreakout[Toggle Breakout Mode]
+        KeyX[X Key Press] --> ToggleExpert[Toggle Expert Mode]
+    end
+
+    subgraph CollisionSystem
+        WallCheck[Check Wall Collision] --> BallBounce[Ball Bounce]
+        PaddleCheck[Check Paddle Collision] --> SpeedCheck{Expert Mode?}
+        SpeedCheck -->|Yes| SpeedUp[Increase Ball Speed]
+        SpeedCheck -->|No| MaintainSpeed[Maintain Ball Speed]
+        BlockCheck[Check Block Collision] --> UpdateBlock[Update Block State]
+    end

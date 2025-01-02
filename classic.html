@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* Basic styling for game container */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #000;
+            margin: 0;
+            height: 100vh;
+        }
+        #score {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        #gameCanvas {
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">0 Score 0</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <script>
+        // Get references to our HTML elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d'); // This is what we use to draw
+        const scoreElement = document.getElementById('score');
+
+        // Game State: This object contains all the important information about our game
+        // Think of it like a snapshot of everything happening in the game at any moment
+        const state = {
+            // Ball properties - position (x,y), size (radius), and movement (speed, direction)
+            ball: {
+                x: canvas.width / 2,      // Start in center of screen
+                y: canvas.height / 2,     // Start in center of screen
+                radius: 5,                // Size of the ball
+                speed: 5,                 // How fast the ball moves
+                dx: 5,                    // Speed in x direction (horizontal)
+                dy: 5                     // Speed in y direction (vertical)
+            },
+            // Player's paddle (left side)
+            playerPaddle: {
+                x: 30,                    // Distance from left edge
+                y: canvas.height / 2,     // Start in vertical center
+                width: 15,                // Paddle thickness
+                height: 80,               // Paddle length
+                score: 0,                 // Player's score
+                speed: 8                  // How fast paddle can move
+            },
+            // AI paddle (right side) - similar to player paddle
+            aiPaddle: {
+                x: canvas.width - 45,     // Distance from right edge
+                y: canvas.height / 2,     // Start in vertical center
+                width: 15,
+                height: 80,
+                score: 0,
+                speed: 5                  // Slightly slower than player for fairness
+            }
+        };
+
+        // Track keyboard input
+        let upPressed = false;
+        let downPressed = false;
+
+        // Drawing Functions
+        // ================
+
+        // Draw the ball on the screen
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Draw a paddle (works for both player and AI)
+        function drawPaddle(paddle, borderColor) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+        }
+
+        // Game Logic Functions
+        // ===================
+
+        // Update the score display
+        function updateScore() {
+            scoreElement.textContent = `${state.playerPaddle.score} Score ${state.aiPaddle.score}`;
+        }
+
+        // Reset ball to center after scoring
+        function resetBall() {
+            state.ball.x = canvas.width / 2;
+            state.ball.y = canvas.height / 2;
+            state.ball.dx = -state.ball.dx;  // Reverse direction
+            state.ball.dy = Math.random() * 10 - 5;  // Random vertical angle
+        }
+
+        // Check if ball hits a paddle
+        function collisionDetection(paddle) {
+            return state.ball.x + state.ball.radius > paddle.x && 
+                   state.ball.x - state.ball.radius < paddle.x + paddle.width &&
+                   state.ball.y > paddle.y - paddle.height/2 &&
+                   state.ball.y < paddle.y + paddle.height/2;
+        }
+
+        // AI paddle movement logic
+        function moveAI() {
+            const targetY = state.ball.y;  // AI tries to match ball's height
+            // Move up if ball is above paddle
+            if (targetY < state.aiPaddle.y - state.aiPaddle.height/4) {
+                state.aiPaddle.y -= state.aiPaddle.speed;
+            }
+            // Move down if ball is below paddle
+            else if (targetY > state.aiPaddle.y + state.aiPaddle.height/4) {
+                state.aiPaddle.y += state.aiPaddle.speed;
+            }
+        }
+
+        // Main Game Update Function
+        // ========================
+        function update() {
+            // Handle player paddle movement
+            if (upPressed && state.playerPaddle.y > state.playerPaddle.height/2) {
+                state.playerPaddle.y -= state.playerPaddle.speed;
+            }
+            if (downPressed && state.playerPaddle.y < canvas.height - state.playerPaddle.height/2) {
+                state.playerPaddle.y += state.playerPaddle.speed;
+            }
+
+            // Update AI paddle position
+            moveAI();
+
+            // Update ball position
+            state.ball.x += state.ball.dx;
+            state.ball.y += state.ball.dy;
+
+            // Ball collision with top and bottom walls
+            if (state.ball.y + state.ball.radius > canvas.height || state.ball.y - state.ball.radius < 0) {
+                state.ball.dy = -state.ball.dy;  // Reverse vertical direction
+            }
+
+            // Ball collision with paddles
+            if (collisionDetection(state.playerPaddle) || collisionDetection(state.aiPaddle)) {
+                state.ball.dx = -state.ball.dx * 1.1;  // Reverse direction and increase speed
+                state.ball.dy += (Math.random() - 0.5) * 2;  // Add some randomness
+            }
+
+            // Scoring
+            if (state.ball.x + state.ball.radius > canvas.width) {
+                state.playerPaddle.score++;  // Player scores
+                updateScore();
+                resetBall();
+            } else if (state.ball.x - state.ball.radius < 0) {
+                state.aiPaddle.score++;      // AI scores
+                updateScore();
+                resetBall();
+            }
+        }
+
+        // Main Drawing Function
+        // ====================
+        function draw() {
+            // Clear the canvas for next frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw center line (dashed)
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw game elements
+            drawPaddle(state.playerPaddle, '#0000FF');  // Blue border for player
+            drawPaddle(state.aiPaddle, '#00FF00');      // Green border for AI
+            drawBall();
+        }
+
+        // Game Loop - This is what keeps our game running
+        function gameLoop() {
+            update();  // Update positions and game state
+            draw();    // Draw everything
+            requestAnimationFrame(gameLoop);  // Schedule the next frame
+        }
+
+        // Keyboard Event Listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') upPressed = true;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp') upPressed = false;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = false;
+        });
+
+        // Start the game!
+        gameLoop();
+    </script>
+</body>
+</html>

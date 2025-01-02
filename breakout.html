@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Basic styling for game container and UI elements -->
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #000;
+            margin: 0;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #score, #controls, #mode-status {
+            margin: 10px 0;
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game UI Elements -->
+    <div id="controls">
+        Controls: ↑↓ for Paddle | B to Toggle Breakout | X to Toggle Expert Mode
+    </div>
+    <div id="score">0 Score 0</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="mode-status">Current Mode: Expert | Breakout: Off</div>
+
+    <script>
+        // Get references to DOM elements for canvas and UI updates
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const modeStatus = document.getElementById('mode-status');
+
+        // Game mode flags (see README - Game Modes section)
+        let expertMode = true;    // Controls ball speed progression
+        let breakoutMode = false; // Toggles breakout blocks
+
+        /**
+         * Block Configuration
+         * As shown in Class Diagram, blocks are part of GameState
+         * Blocks appear in a vertical column when breakout mode is active
+         */
+        const blocks = [];
+        const BLOCK_ROWS = 8;
+        const BLOCK_COLS = 1;
+        const BLOCK_HEIGHT = 30;
+        const BLOCK_WIDTH = 15;
+        const BLOCK_GAP = 10;
+
+        /**
+         * Initialize Breakout Blocks
+         * Creates the block array as shown in Class Diagram
+         * Each block has: x, y, width, height, active status
+         */
+        function initializeBlocks() {
+            blocks.length = 0;
+            const startX = canvas.width / 2 - BLOCK_WIDTH / 2;
+            const startY = 50;
+
+            for (let row = 0; row < BLOCK_ROWS; row++) {
+                for (let col = 0; col < BLOCK_COLS; col++) {
+                    blocks.push({
+                        x: startX + col * (BLOCK_WIDTH + BLOCK_GAP),
+                        y: startY + row * (BLOCK_HEIGHT + BLOCK_GAP),
+                        width: BLOCK_WIDTH,
+                        height: BLOCK_HEIGHT,
+                        active: true
+                    });
+                }
+            }
+        }
+
+        /**
+         * Game State
+         * Core game state object as shown in Class Diagram
+         * Contains Ball, PlayerPaddle, and AIPaddle properties
+         */
+        const state = {
+            // Ball properties with physics values
+            ball: {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 5,
+                speed: 5,
+                dx: 5,
+                dy: 5,
+                baseSpeed: 5  // Used for non-expert mode
+            },
+            // Player paddle (left side)
+            playerPaddle: {
+                x: 30,
+                y: canvas.height / 2,
+                width: 15,
+                height: 80,
+                score: 0,
+                speed: 8
+            },
+            // AI paddle (right side)
+            aiPaddle: {
+                x: canvas.width - 45,
+                y: canvas.height / 2,
+                width: 15,
+                height: 80,
+                score: 0,
+                speed: 5
+            }
+        };
+
+        // Input tracking for paddle control
+        let upPressed = false;
+        let downPressed = false;
+
+        /**
+         * Drawing Functions
+         * Render game elements to canvas
+         * See Flow Chart - Draw section
+         */
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle(paddle, borderColor) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+        }
+
+        function drawBlocks() {
+            blocks.forEach(block => {
+                if (block.active) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(block.x, block.y, block.width, block.height);
+                    ctx.strokeStyle = '#0000FF';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(block.x, block.y, block.width, block.height);
+                }
+            });
+        }
+
+        /**
+         * UI Update Functions
+         * Keep score and mode displays current
+         */
+        function updateScore() {
+            scoreElement.textContent = `${state.playerPaddle.score} Score ${state.aiPaddle.score}`;
+        }
+
+        function updateModeStatus() {
+            modeStatus.textContent = `Current Mode: ${expertMode ? 'Expert' : 'Easy'} | Breakout: ${breakoutMode ? 'On' : 'Off'}`;
+        }
+
+        /**
+         * Ball Reset
+         * Called after scoring
+         * Resets position and applies appropriate speed based on mode
+         */
+        function resetBall() {
+            state.ball.x = canvas.width / 2;
+            state.ball.y = canvas.height / 2;
+            state.ball.dx = -state.ball.dx;
+            state.ball.dy = Math.random() * 10 - 5;
+            if (!expertMode) {
+                state.ball.dx = state.ball.dx > 0 ? state.ball.baseSpeed : -state.ball.baseSpeed;
+            }
+        }
+
+        /**
+         * Collision Detection System
+         * As shown in Flow Chart - CollisionSystem
+         */
+        function collisionDetection(paddle) {
+            return state.ball.x + state.ball.radius > paddle.x && 
+                   state.ball.x - state.ball.radius < paddle.x + paddle.width &&
+                   state.ball.y > paddle.y - paddle.height/2 &&
+                   state.ball.y < paddle.y + paddle.height/2;
+        }
+
+        function checkBlockCollision() {
+            blocks.forEach(block => {
+                if (block.active && 
+                    state.ball.x + state.ball.radius > block.x &&
+                    state.ball.x - state.ball.radius < block.x + block.width &&
+                    state.ball.y + state.ball.radius > block.y &&
+                    state.ball.y - state.ball.radius < block.y + block.height) {
+                    
+                    block.active = false;
+                    state.ball.dx = -state.ball.dx;
+                    
+                    // Award point based on which side the ball came from
+                    if (state.ball.x < canvas.width / 2) {
+                        state.playerPaddle.score++;
+                    } else {
+                        state.aiPaddle.score++;
+                    }
+                    updateScore();
+                }
+            });
+        }
+
+        /**
+         * AI Movement
+         * Controls the right paddle's movement
+         * Follows ball position with slight delay for playability
+         */
+        function moveAI() {
+            const targetY = state.ball.y;
+            if (targetY < state.aiPaddle.y - state.aiPaddle.height/4) {
+                state.aiPaddle.y -= state.aiPaddle.speed;
+            } else if (targetY > state.aiPaddle.y + state.aiPaddle.height/4) {
+                state.aiPaddle.y += state.aiPaddle.speed;
+            }
+        }
+
+        /**
+         * Main Update Function
+         * Core game logic as shown in Flow Chart - GameLoop
+         * Handles movement, collisions, and scoring
+         */
+        function update() {
+            // Player paddle movement
+            if (upPressed && state.playerPaddle.y > state.playerPaddle.height/2) {
+                state.playerPaddle.y -= state.playerPaddle.speed;
+            }
+            if (downPressed && state.playerPaddle.y < canvas.height - state.playerPaddle.height/2) {
+                state.playerPaddle.y += state.playerPaddle.speed;
+            }
+
+            moveAI();
+            
+            // Ball movement
+            state.ball.x += state.ball.dx;
+            state.ball.y += state.ball.dy;
+
+            // Wall collisions
+            if (state.ball.y + state.ball.radius > canvas.height || state.ball.y - state.ball.radius < 0) {
+                state.ball.dy = -state.ball.dy;
+            }
+
+            // Paddle collisions with expert mode speed increase
+            if (collisionDetection(state.playerPaddle) || collisionDetection(state.aiPaddle)) {
+                state.ball.dx = -state.ball.dx;
+                if (expertMode) {
+                    state.ball.dx *= 1.1;
+                }
+                state.ball.dy += (Math.random() - 0.5) * 2;
+            }
+
+            // Breakout block collisions
+            if (breakoutMode) {
+                checkBlockCollision();
+            }
+
+            // Scoring
+            if (state.ball.x + state.ball.radius > canvas.width) {
+                state.playerPaddle.score++;
+                updateScore();
+                resetBall();
+            } else if (state.ball.x - state.ball.radius < 0) {
+                state.aiPaddle.score++;
+                updateScore();
+                resetBall();
+            }
+        }
+
+        /**
+         * Main Draw Function
+         * Renders all game elements
+         * See Flow Chart - Draw section
+         */
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw center line
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw game elements in order
+            if (breakoutMode) {
+                drawBlocks();
+            }
+            drawPaddle(state.playerPaddle, '#0000FF');
+            drawPaddle(state.aiPaddle, '#00FF00');
+            drawBall();
+        }
+
+        /**
+         * Game Loop
+         * Main loop as shown in Flow Chart
+         * Continuously updates and renders the game
+         */
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * Input Handlers
+         * Keyboard controls as shown in README
+         */
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') upPressed = true;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = true;
+            // Mode toggles
+            if (e.key.toLowerCase() === 'b') {
+                breakoutMode = !breakoutMode;
+                if (breakoutMode) {
+                    initializeBlocks();
+                }
+                updateModeStatus();
+            }
+            if (e.key.toLowerCase() === 'x') {
+                expertMode = !expertMode;
+                if (!expertMode) {
+                    state.ball.dx = state.ball.dx > 0 ? state.ball.baseSpeed : -state.ball.baseSpeed;
+                }
+                updateModeStatus();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp') upPressed = false;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = false;
+        });
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>

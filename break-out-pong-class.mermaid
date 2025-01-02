@@ -1,0 +1,38 @@
+classDiagram
+    class GameState {
+        +ball: Ball
+        +playerPaddle: Paddle
+        +aiPaddle: Paddle
+        +blocks: Block[]
+        +expertMode: boolean
+        +breakoutMode: boolean
+        +update()
+        +draw()
+    }
+    class Ball {
+        +x: number
+        +y: number
+        +radius: number
+        +speed: number
+        +baseSpeed: number
+        +dx: number
+        +dy: number
+    }
+    class Paddle {
+        +x: number
+        +y: number
+        +width: number
+        +height: number
+        +score: number
+        +speed: number
+    }
+    class Block {
+        +x: number
+        +y: number
+        +width: number
+        +height: number
+        +active: boolean
+    }
+    GameState --> Ball
+    GameState --> Paddle
+    GameState --> Block
