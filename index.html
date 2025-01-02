@@ -90,21 +90,25 @@
     </div>
 
     <script>
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            securityLevel: 'loose'
-        });
+    mermaid.initialize({ startOnLoad: false }); // Change to false to prevent auto-init
 
-        // Load diagram files
-        document.querySelectorAll('.mermaid[data-src]').forEach(element => {
-            fetch(element.dataset.src)
-                .then(response => response.text())
-                .then(content => {
-                    element.textContent = content;
-                    mermaid.init(undefined, element);
-                });
-        });
+    document.querySelectorAll('.mermaid[data-src]').forEach(element => {
+        fetch(element.dataset.src)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(content => {
+                element.innerHTML = content;
+                mermaid.init(undefined, element);
+            })
+            .catch(error => {
+                console.error('Error loading diagram:', error);
+                element.innerHTML = 'Error loading diagram';
+            });
+    });
     </script>
 </body>
 </html>
