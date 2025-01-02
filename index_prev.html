@@ -49,37 +49,12 @@
             padding: 20px;
             border-radius: 10px;
         }
-    .diagram-container {
-        position: relative;
-    }
-    
-    .zoom-controls {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.1);
-        padding: 5px;
-        border-radius: 5px;
-    }
-
-    .zoom-button {
-        padding: 5px 10px;
-        margin: 0 2px;
-        cursor: pointer;
-    }
-
-    .mermaid {
-        transform-origin: top left;
-        transition: transform 0.3s ease;
-    }
-
         .diagram-title {
             color: black;
             text-align: center;
             margin-bottom: 15px;
         }
     </style>
-
 </head>
 <body>
     <div class="container">
@@ -134,24 +109,6 @@
                 element.innerHTML = 'Error loading diagram';
             });
     });
-
-        // Add zoom controls to each diagram container
-    document.querySelectorAll('.diagram-container').forEach(container => {
-        const zoomControls = document.createElement('div');
-        zoomControls.className = 'zoom-controls';
-        zoomControls.innerHTML = `
-            <button class="zoom-button" onclick="zoom(this, 0.8)">-</button>
-            <button class="zoom-button" onclick="zoom(this, 1)">Reset</button>
-            <button class="zoom-button" onclick="zoom(this, 1.2)">+</button>
-        `;
-        container.appendChild(zoomControls);
-    });
-
-    function zoom(button, scale) {
-        const diagram = button.closest('.diagram-container').querySelector('.mermaid');
-        diagram.style.transform = `scale(${scale})`;
-    }
-
     </script>
 </body>
 </html>
