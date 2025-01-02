@@ -1,357 +1,212 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classic Pong</title>
     <style>
+        /* Basic styling for game container */
         body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            background: #000;
             margin: 0;
-            background-color: #000;
-            font-family: 'Arial', sans-serif;
+            height: 100vh;
         }
-        
-        #gameContainer {
-            position: relative;
+        #score {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            margin: 20px 0;
         }
-        
         #gameCanvas {
             border: 2px solid white;
-            background-color: #000;
-        }
-        
-        #score {
-            position: absolute;
-            top: -40px;
-            width: 100%;
-            color: white;
-            font-size: 24px;
-            text-align: center;
-        }
-        
-        .game-over {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 32px;
-            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="score">0 - 0</div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="gameOver" class="game-over">
-            Game Over!<br>
-            Press Space to restart
-        </div>
-    </div>
+    <div id="score">0 Score 0</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
 
     <script>
-        // Game Configuration
-        const CONFIG = {
-            canvas: {
-                width: 800,
-                height: 400
-            },
-            paddle: {
-                width: 10,
-                height: 60,
-                speed: 5,
-                margin: 50
-            },
-            ball: {
-                size: 8,
-                speed: 5,
-                speedIncrease: 0.2
-            },
-            score: {
-                winScore: 5
-            },
-            block: {  // Add this new section
-                width: 30,
-                height: 15,
-                points: 10,
-                color: '#FF0000'
-            }
-        };
-
-        // Game State
-        const gameState = {
-            paused: false,
-            over: false,
-            score: {
-                player: 0,
-                ai: 0
-            }
-        };
-
-        // Game Objects
-        class GameObject {
-            constructor(x, y, width, height) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
-                this.height = height;
-            }
-
-            draw(ctx) {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-            }
-        }
-
-        class Block extends GameObject {
-            constructor(x, y, width, height) {
-                super(x, y, width, height);
-                this.active = true;
-            }
-        
-            draw(ctx) {
-                if (this.active) {
-                    ctx.fillStyle = CONFIG.block.color;
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
-            }
-        }
-        
-        class Paddle extends GameObject {
-            constructor(x, y, width, height) {
-                super(x, y, width, height);
-                this.dy = 0;
-            }
-
-            move() {
-                this.y += this.dy;
-                // Keep paddle within canvas bounds
-                if (this.y < 0) this.y = 0;
-                if (this.y + this.height > CONFIG.canvas.height) {
-                    this.y = CONFIG.canvas.height - this.height;
-                }
-            }
-        }
-
-        class Ball extends GameObject {
-            constructor(x, y, size) {
-                super(x, y, size, size);
-                this.reset();
-            }
-
-            reset() {
-                this.x = CONFIG.canvas.width / 2;
-                this.y = CONFIG.canvas.height / 2;
-                this.dx = CONFIG.ball.speed * (Math.random() > 0.5 ? 1 : -1);
-                this.dy = CONFIG.ball.speed * (Math.random() * 2 - 1);
-            }
-
-            move() {
-                this.x += this.dx;
-                this.y += this.dy;
-
-                // Ball collision with top and bottom
-                if (this.y <= 0 || this.y + this.height >= CONFIG.canvas.height) {
-                    this.dy = -this.dy;
-                }
-            }
-
-            checkPaddleCollision(paddle) {
-                if (this.x < paddle.x + paddle.width &&
-                    this.x + this.width > paddle.x &&
-                    this.y < paddle.y + paddle.height &&
-                    this.y + this.height > paddle.y) {
-                    
-                    // Calculate relative intersect point
-                    const relativeIntersectY = (paddle.y + (paddle.height / 2)) - (this.y + (this.height / 2));
-                    const normalizedRelativeIntersectY = relativeIntersectY / (paddle.height / 2);
-                    
-                    // Calculate new angle (maximum 75 degrees)
-                    const bounceAngle = normalizedRelativeIntersectY * Math.PI/3;
-                    
-                    // Increase speed slightly on each hit
-                    const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy) + CONFIG.ball.speedIncrease;
-                    
-                    // Set new velocity
-                    this.dx = Math.cos(bounceAngle) * speed * (this.dx > 0 ? -1 : 1);
-                    this.dy = -Math.sin(bounceAngle) * speed;
-                    
-                    return true;
-                }
-                return false;
-            }
-            checkBlockCollision(block) {
-                if (!block.active) return false;
-                
-                if (this.x < block.x + block.width &&
-                    this.x + this.width > block.x &&
-                    this.y < block.y + block.height &&
-                    this.y + this.height > block.y) {
-                    
-                    block.active = false;
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        // Initialize game objects
+        // Get references to our HTML elements
         const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = CONFIG.canvas.width;
-        canvas.height = CONFIG.canvas.height;
+        const ctx = canvas.getContext('2d'); // This is what we use to draw
+        const scoreElement = document.getElementById('score');
 
-        const playerPaddle = new Paddle(
-            CONFIG.paddle.margin,
-            (CONFIG.canvas.height - CONFIG.paddle.height) / 2,
-            CONFIG.paddle.width,
-            CONFIG.paddle.height
-        );
-
-        const aiPaddle = new Paddle(
-            CONFIG.canvas.width - CONFIG.paddle.margin - CONFIG.paddle.width,
-            (CONFIG.canvas.height - CONFIG.paddle.height) / 2,
-            CONFIG.paddle.width,
-            CONFIG.paddle.height
-        );
-
-        const ball = new Ball(
-            CONFIG.canvas.width / 2,
-            CONFIG.canvas.height / 2,
-            CONFIG.ball.size
-        );
-
-        const block = new Block(
-            Math.random() * (CONFIG.canvas.width - 200) + 100, // Random X between 100 and width-100
-            Math.random() * (CONFIG.canvas.height - 50) + 25,  // Random Y between 25 and height-25
-            CONFIG.block.width,
-            CONFIG.block.height
-        );
-
-        // Input handling
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') {
-                playerPaddle.dy = -CONFIG.paddle.speed;
-            } else if (e.key === 'ArrowDown') {
-                playerPaddle.dy = CONFIG.paddle.speed;
-            } else if (e.key === ' ') {
-                if (gameState.over) {
-                    resetGame();
-                }
+        // Game State: This object contains all the important information about our game
+        // Think of it like a snapshot of everything happening in the game at any moment
+        const state = {
+            // Ball properties - position (x,y), size (radius), and movement (speed, direction)
+            ball: {
+                x: canvas.width / 2,      // Start in center of screen
+                y: canvas.height / 2,     // Start in center of screen
+                radius: 5,                // Size of the ball
+                speed: 5,                 // How fast the ball moves
+                dx: 5,                    // Speed in x direction (horizontal)
+                dy: 5                     // Speed in y direction (vertical)
+            },
+            // Player's paddle (left side)
+            playerPaddle: {
+                x: 30,                    // Distance from left edge
+                y: canvas.height / 2,     // Start in vertical center
+                width: 15,                // Paddle thickness
+                height: 80,               // Paddle length
+                score: 0,                 // Player's score
+                speed: 8                  // How fast paddle can move
+            },
+            // AI paddle (right side) - similar to player paddle
+            aiPaddle: {
+                x: canvas.width - 45,     // Distance from right edge
+                y: canvas.height / 2,     // Start in vertical center
+                width: 15,
+                height: 80,
+                score: 0,
+                speed: 5                  // Slightly slower than player for fairness
             }
+        };
+
+        // Track keyboard input
+        let upPressed = false;
+        let downPressed = false;
+
+        // Drawing Functions
+        // ================
+
+        // Draw the ball on the screen
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Draw a paddle (works for both player and AI)
+        function drawPaddle(paddle, borderColor) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(paddle.x, paddle.y - paddle.height/2, paddle.width, paddle.height);
+        }
+
+        // Game Logic Functions
+        // ===================
+
+        // Update the score display
+        function updateScore() {
+            scoreElement.textContent = `${state.playerPaddle.score} Score ${state.aiPaddle.score}`;
+        }
+
+        // Reset ball to center after scoring
+        function resetBall() {
+            state.ball.x = canvas.width / 2;
+            state.ball.y = canvas.height / 2;
+            state.ball.dx = -state.ball.dx;  // Reverse direction
+            state.ball.dy = Math.random() * 10 - 5;  // Random vertical angle
+        }
+
+        // Check if ball hits a paddle
+        function collisionDetection(paddle) {
+            return state.ball.x + state.ball.radius > paddle.x && 
+                   state.ball.x - state.ball.radius < paddle.x + paddle.width &&
+                   state.ball.y > paddle.y - paddle.height/2 &&
+                   state.ball.y < paddle.y + paddle.height/2;
+        }
+
+        // AI paddle movement logic
+        function moveAI() {
+            const targetY = state.ball.y;  // AI tries to match ball's height
+            // Move up if ball is above paddle
+            if (targetY < state.aiPaddle.y - state.aiPaddle.height/4) {
+                state.aiPaddle.y -= state.aiPaddle.speed;
+            }
+            // Move down if ball is below paddle
+            else if (targetY > state.aiPaddle.y + state.aiPaddle.height/4) {
+                state.aiPaddle.y += state.aiPaddle.speed;
+            }
+        }
+
+        // Main Game Update Function
+        // ========================
+        function update() {
+            // Handle player paddle movement
+            if (upPressed && state.playerPaddle.y > state.playerPaddle.height/2) {
+                state.playerPaddle.y -= state.playerPaddle.speed;
+            }
+            if (downPressed && state.playerPaddle.y < canvas.height - state.playerPaddle.height/2) {
+                state.playerPaddle.y += state.playerPaddle.speed;
+            }
+
+            // Update AI paddle position
+            moveAI();
+
+            // Update ball position
+            state.ball.x += state.ball.dx;
+            state.ball.y += state.ball.dy;
+
+            // Ball collision with top and bottom walls
+            if (state.ball.y + state.ball.radius > canvas.height || state.ball.y - state.ball.radius < 0) {
+                state.ball.dy = -state.ball.dy;  // Reverse vertical direction
+            }
+
+            // Ball collision with paddles
+            if (collisionDetection(state.playerPaddle) || collisionDetection(state.aiPaddle)) {
+                state.ball.dx = -state.ball.dx * 1.1;  // Reverse direction and increase speed
+                state.ball.dy += (Math.random() - 0.5) * 2;  // Add some randomness
+            }
+
+            // Scoring
+            if (state.ball.x + state.ball.radius > canvas.width) {
+                state.playerPaddle.score++;  // Player scores
+                updateScore();
+                resetBall();
+            } else if (state.ball.x - state.ball.radius < 0) {
+                state.aiPaddle.score++;      // AI scores
+                updateScore();
+                resetBall();
+            }
+        }
+
+        // Main Drawing Function
+        // ====================
+        function draw() {
+            // Clear the canvas for next frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw center line (dashed)
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw game elements
+            drawPaddle(state.playerPaddle, '#0000FF');  // Blue border for player
+            drawPaddle(state.aiPaddle, '#00FF00');      // Green border for AI
+            drawBall();
+        }
+
+        // Game Loop - This is what keeps our game running
+        function gameLoop() {
+            update();  // Update positions and game state
+            draw();    // Draw everything
+            requestAnimationFrame(gameLoop);  // Schedule the next frame
+        }
+
+        // Keyboard Event Listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') upPressed = true;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = true;
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowUp' && playerPaddle.dy < 0) {
-                playerPaddle.dy = 0;
-            } else if (e.key === 'ArrowDown' && playerPaddle.dy > 0) {
-                playerPaddle.dy = 0;
-            }
+            if (e.key === 'ArrowUp') upPressed = false;
+            if (e.key === 'Down' || e.key === 'ArrowDown') downPressed = false;
         });
 
-        // AI paddle movement
-        function updateAIPaddle() {
-            const paddleCenter = aiPaddle.y + aiPaddle.height / 2;
-            const ballCenter = ball.y + ball.height / 2;
-            
-            if (paddleCenter < ballCenter - 10) {
-                aiPaddle.dy = CONFIG.paddle.speed * 0.8;
-            } else if (paddleCenter > ballCenter + 10) {
-                aiPaddle.dy = -CONFIG.paddle.speed * 0.8;
-            } else {
-                aiPaddle.dy = 0;
-            }
-        }
-
-        // Game loop functions
-        function update() {
-            if (gameState.paused || gameState.over) return;
-
-            playerPaddle.move();
-            updateAIPaddle();
-            aiPaddle.move();
-            ball.move();
-
-            // Check for paddle collisions
-            ball.checkPaddleCollision(playerPaddle);
-            ball.checkPaddleCollision(aiPaddle);
-
-            // Check for block collision and winning
-            if (ball.checkBlockCollision(block)) {
-                gameState.score.player += CONFIG.block.points;
-                gameState.over = true;
-                document.getElementById('gameOver').style.display = 'block';
-            }
-
-            // Check for scoring
-            if (ball.x <= 0) {
-                gameState.score.ai++;
-                ball.reset();
-            } else if (ball.x + ball.width >= CONFIG.canvas.width) {
-                gameState.score.player++;
-                ball.reset();
-            }
-
-            // Update score display
-            document.getElementById('score').textContent = 
-                `${gameState.score.player} - ${gameState.score.ai}`;
-
-            // Check for game over
-            if (gameState.score.player >= CONFIG.score.winScore || 
-                gameState.score.ai >= CONFIG.score.winScore) {
-                gameState.over = true;
-                document.getElementById('gameOver').style.display = 'block';
-            }
-        }
-
-        function draw() {
-            // Clear canvas
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw center line
-            ctx.setLineDash([5, 15]);
-            ctx.beginPath();
-            ctx.moveTo(CONFIG.canvas.width / 2, 0);
-            ctx.lineTo(CONFIG.canvas.width / 2, CONFIG.canvas.height);
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
-
-            // Draw game objects
-            playerPaddle.draw(ctx);
-            aiPaddle.draw(ctx);
-            ball.draw(ctx);
-            block.draw(ctx)
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function resetGame() {
-            gameState.score.player = 0;
-            gameState.score.ai = 0;
-            gameState.over = false;
-            document.getElementById('gameOver').style.display = 'none';
-            ball.reset();
-            playerPaddle.y = (CONFIG.canvas.height - CONFIG.paddle.height) / 2;
-            aiPaddle.y = (CONFIG.canvas.height - CONFIG.paddle.height) / 2;
-            block.active = true;
-            // Give block new random position
-            block.x = Math.random() * (CONFIG.canvas.width - 200) + 100;
-            block.y = Math.random() * (CONFIG.canvas.height - 50) + 25;
-
-        }
-
-        // Start the game
+        // Start the game!
         gameLoop();
     </script>
 </body>

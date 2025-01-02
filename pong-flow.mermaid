@@ -1,0 +1,19 @@
+flowchart TB
+    subgraph GameLoop
+        Init[Initialize Game] --> Update
+        Update --> Collision[Check Collisions]
+        Collision --> Score[Update Score]
+        Score --> Draw[Draw Frame]
+        Draw --> RAF[Request Animation Frame]
+        RAF --> Update
+    end
+
+    subgraph InputHandling
+        Keys[Keyboard Events] --> PlayerMove[Move Player Paddle]
+        Ball[Ball Position] --> AIMove[Move AI Paddle]
+    end
+
+    subgraph CollisionSystem
+        WallCheck[Check Wall Collision] --> BallBounce[Ball Bounce]
+        PaddleCheck[Check Paddle Collision] --> SpeedUp[Increase Ball Speed]
+    end

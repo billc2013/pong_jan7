@@ -1,0 +1,26 @@
+classDiagram
+    class GameState {
+        +ball: Ball
+        +playerPaddle: Paddle
+        +aiPaddle: Paddle
+        +update()
+        +draw()
+    }
+    class Ball {
+        +x: number
+        +y: number
+        +radius: number
+        +speed: number
+        +dx: number
+        +dy: number
+    }
+    class Paddle {
+        +x: number
+        +y: number
+        +width: number
+        +height: number
+        +score: number
+        +speed: number
+    }
+    GameState --> Ball
+    GameState --> Paddle
